@@ -1,0 +1,5 @@
+[phases.setup]
+nixPkgs = ["...", "php82Extensions.pdo_mysql"]
+
+# 注意：如果你用的是 PHP 8.1，就把上面的 php82 改成 php81
+# 如果不确定，通常 Railway 默认是 8.1 或 8.2，你可以两个都写上试试，或者先试 8.2
