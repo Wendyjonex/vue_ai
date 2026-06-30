@@ -1,5 +1,8 @@
 FROM php:8.1-apache
 
+RUN a2dismod mpm_event mpm_worker mpm_prefork || true \
+    && a2enmod mpm_prefork
+
 RUN docker-php-ext-install pdo pdo_mysql mysqli && docker-php-ext-enable pdo_mysql
 
 RUN a2enmod rewrite
