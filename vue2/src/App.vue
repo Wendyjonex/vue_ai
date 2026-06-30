@@ -34,7 +34,8 @@
 import { ref, onMounted } from 'vue';
 
 // API 地址 (对应你的 php 文件路径)
-const API_URL = 'http://localhost:8080/api.php';
+// 注意：一定要加上 https://，并且后面跟上 /api.php
+const API_URL = 'https://vueai-production.up.railway.app/api.php';
 
 const tasks = ref([]);
 const newTaskTitle = ref('');
