@@ -1,19 +1,17 @@
-FROM php:8.1-apache
+FROM php:8.1-cli
 
-RUN a2dismod mpm_event mpm_worker mpm_prefork || true \
-    && a2enmod mpm_prefork
+RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-install pdo pdo_mysql mysqli && docker-php-ext-enable pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql mysqli
 
-RUN a2enmod rewrite
+COPY . /app/
 
-COPY . /var/www/html/
+WORKDIR /app/
 
-WORKDIR /var/www/html/
+RUN chmod +x start.sh
+
+RUN echo "<?php phpinfo(); ?>" > /app/phpinfo.php
 
 EXPOSE 8080
 
-RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
-RUN sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:8080>/' /etc/apache2/sites-available/000-default.conf
-
-RUN echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+CMD ["./start.sh"]
