@@ -1,14 +1,27 @@
 #!/bin/bash
-# 等待 MySQL 完全启动
-echo "Waiting for MySQL to start..."
-while ! mysqladmin ping -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" --silent; do
+
+PORT=${PORT:-8080}
+
+echo "=== Waiting for MySQL... ==="
+MAX_RETRIES=30
+RETRY=0
+while ! mysqladmin ping -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" --silent 2>/dev/null; do
+    RETRY=$((RETRY + 1))
+    if [ $RETRY -ge $MAX_RETRIES ]; then
+        echo "WARNING: MySQL not reachable after $MAX_RETRIES attempts, starting PHP anyway..."
+        break
+    fi
+    echo "Waiting for MySQL... ($RETRY/$MAX_RETRIES)"
     sleep 2
 done
 
-echo "MySQL is up! Importing database..."
-# 导入你的 SQL 文件初始化数据库
-mysql -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" "$MYSQLDATABASE" < dump-test_db-202606301837.sql
+if [ $RETRY -lt $MAX_RETRIES ]; then
+    echo "=== MySQL is up! ==="
+    if [ -f dump-test_db-202606301837.sql ]; then
+        echo "Importing database (ignore errors if tables exist)..."
+        mysql -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" "$MYSQLDATABASE" < dump-test_db-202606301837.sql 2>/dev/null || echo "Import skipped or completed with warnings"
+    fi
+fi
 
-echo "Starting PHP Server..."
-# 启动 PHP 内置服务器，监听 Railway 分配的端口
+echo "=== Starting PHP server on port $PORT ==="
 exec php -S 0.0.0.0:$PORT
