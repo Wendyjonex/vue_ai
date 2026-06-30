@@ -12,18 +12,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // ==========================================
-// 🔽 核心修改：直接从环境变量读取配置
+// 🔽 核心修改：增强版环境变量读取逻辑
 // ==========================================
-// 优先从 $_SERVER 读取，兼容各种 PHP 运行环境
-$host = $_SERVER['MYSQLHOST'] ?? getenv('MYSQLHOST');
-$port = $_SERVER['MYSQLPORT'] ?? getenv('MYSQLPORT') ?: '3306';
-$db   = $_SERVER['MYSQLDATABASE'] ?? getenv('MYSQLDATABASE');
-$user = $_SERVER['MYSQLUSER'] ?? getenv('MYSQLUSER');
-$pass = $_SERVER['MYSQLPASSWORD'] ?? getenv('MYSQLPASSWORD');
+// Railway 有时不将变量放入 $_SERVER，必须优先使用 getenv()
+$host = getenv('MYSQLHOST');
+$user = getenv('MYSQLUSER');
+$pass = getenv('MYSQLPASSWORD');
+$db   = getenv('MYSQLDATABASE');
+$port = getenv('MYSQLPORT');
+
+// 如果 getenv 读不到，再尝试从 $_ENV 或 $_SERVER 读取（作为备选）
+if (!$host) $host = $_ENV['MYSQLHOST'] ?? $_SERVER['MYSQLHOST'] ?? '';
+if (!$user) $user = $_ENV['MYSQLUSER'] ?? $_SERVER['MYSQLUSER'] ?? '';
+if (!$pass) $pass = $_ENV['MYSQLPASSWORD'] ?? $_SERVER['MYSQLPASSWORD'] ?? '';
+if (!$db)   $db   = $_ENV['MYSQLDATABASE'] ?? $_SERVER['MYSQLDATABASE'] ?? '';
+if (!$port) $port = $_ENV['MYSQLPORT'] ?? $_SERVER['MYSQLPORT'] ?? '3306';
+
+// 调试信息：如果连不上，暂时打开下面这行注释，查看代码到底读到了什么
+// echo json_encode(["debug_host" => $host, "debug_user" => $user, "debug_db" => $db]); exit;
 
 // 如果连主机都没读到，说明环境变量没配对
-if (!$host) {
-    echo json_encode(["error" => "系统错误：未找到数据库环境变量，请检查 Railway 配置"]);
+if (!$host || !$user) {
+    echo json_encode(["error" => "系统错误：未找到数据库配置，请检查 Railway Variables 是否已部署"]);
     exit;
 }
 
@@ -41,10 +51,11 @@ $options = [
 ];
 
 try {
+    // 这里如果报错，通常是因为密码错或者地址错
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-    // 生产环境不要暴露具体错误
-    echo json_encode(["error" => "数据库连接失败"]);
+    // 为了调试，这里暂时把具体错误打印出来（上线后建议关掉详细错误）
+    echo json_encode(["error" => "数据库连接失败: " . $e->getMessage()]);
     exit;
 }
 
