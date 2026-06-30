@@ -1,0 +1,5 @@
+[build]
+builder = "nixpacks"
+
+[build.config]
+packages = ["php", "php-pdo", "php-pdo_mysql"]
