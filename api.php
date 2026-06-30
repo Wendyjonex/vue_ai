@@ -12,26 +12,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // ==========================================
-// 🔽 修改部分开始：加载外部配置文件
+// 🔽 核心修改：直接从环境变量读取配置
 // ==========================================
+// 优先从 $_SERVER 读取，兼容各种 PHP 运行环境
+$host = $_SERVER['MYSQLHOST'] ?? getenv('MYSQLHOST');
+$port = $_SERVER['MYSQLPORT'] ?? getenv('MYSQLPORT') ?: '3306';
+$db   = $_SERVER['MYSQLDATABASE'] ?? getenv('MYSQLDATABASE');
+$user = $_SERVER['MYSQLUSER'] ?? getenv('MYSQLUSER');
+$pass = $_SERVER['MYSQLPASSWORD'] ?? getenv('MYSQLPASSWORD');
 
-// 检查配置文件是否存在，防止报错
-$configFile = __DIR__ . '/config.php'; 
-if (!file_exists($configFile)) {
-    echo json_encode(["error" => "系统错误：找不到配置文件 config.php"]);
+// 如果连主机都没读到，说明环境变量没配对
+if (!$host) {
+    echo json_encode(["error" => "系统错误：未找到数据库环境变量，请检查 Railway 配置"]);
     exit;
 }
 
-// 引入配置文件并获取数组
-$dbConfig = require $configFile;
-
-// 使用配置文件中的值建立连接
-$dsn = "mysql:host={$dbConfig['host']};dbname={$dbConfig['db']};charset={$dbConfig['charset']}";
-$user = $dbConfig['user'];
-$pass = $dbConfig['pass'];
+// 使用获取到的变量建立连接
+$dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
 
 // ==========================================
-// 🔼 修改部分结束
+// 🔼 核心修改结束
 // ==========================================
 
 $options = [
@@ -43,10 +43,8 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-    // ⚠️ 生产环境建议不要直接输出 $e->getMessage()，容易暴露数据库结构
+    // 生产环境不要暴露具体错误
     echo json_encode(["error" => "数据库连接失败"]);
-    // 调试时可以打开下面这行查看具体错误：
-    // echo json_encode(["error" => "数据库连接失败: " . $e->getMessage()]);
     exit;
 }
 
@@ -69,8 +67,6 @@ switch ($action) {
     default:
         echo json_encode(["error" => "无效的操作"]);
 }
-
-// --- 核心功能函数 (以下完全不需要改动) ---
 
 function getList($pdo) {
     $stmt = $pdo->query("SELECT id, title, is_completed as status FROM tasks ORDER BY id DESC");
