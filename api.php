@@ -14,7 +14,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // ==========================================
-// 2. 核心修改：环境变量读取 + 强制调试输出
+// 2. PHP驱动自检
+// ==========================================
+if (!extension_loaded('pdo_mysql')) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        "error" => "PHP扩展缺失",
+        "message" => "pdo_mysql 扩展未安装或未启用",
+        "available_pdo_drivers" => PDO::getAvailableDrivers(),
+        "loaded_extensions" => extension_loaded('pdo') ? "pdo已加载" : "pdo未加载",
+        "hint" => "请检查 Dockerfile 中是否安装了 pdo_mysql 扩展"
+    ]);
+    exit;
+}
+
+// ==========================================
+// 3. 核心修改：环境变量读取 + 强制调试输出
 // ==========================================
 
 // 尝试多种方式获取变量
