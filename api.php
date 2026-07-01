@@ -39,22 +39,20 @@ $pass = getenv('MYSQLPASSWORD') ?: ($_ENV['MYSQLPASSWORD'] ?? $_SERVER['MYSQLPAS
 $db   = getenv('MYSQLDATABASE') ?: ($_ENV['MYSQLDATABASE'] ?? $_SERVER['MYSQLDATABASE'] ?? '');
 $port = getenv('MYSQLPORT') ?: ($_ENV['MYSQLPORT'] ?? $_SERVER['MYSQLPORT'] ?? '3306');
 
-// 【重要】临时调试开关：如果报错，这段代码会直接把变量值打印出来给你看
-// 确认没问题后，请把下面这个 if 块删掉或注释掉！
-if (!$host || !$user || !$db) {
-    header('Content-Type: application/json');
-    echo json_encode([
-        "error" => "环境变量缺失",
-        "debug_info" => [
-            "host" => $host ? "已获取(长度:" . strlen($host) . ")" : "空",
-            "user" => $user ? "已获取(长度:" . strlen($user) . ")" : "空",
-            "db"   => $db ? "已获取(长度:" . strlen($db) . ")" : "空",
-            "port" => $port
-        ],
-        "hint" => "请检查 Railway Variables 面板中的变量名是否完全一致（注意大小写）"
-    ]);
-    exit;
-}
+// if (!$host || !$user || !$db) {
+//     header('Content-Type: application/json');
+//     echo json_encode([
+//         "error" => "环境变量缺失",
+//         "debug_info" => [
+//             "host" => $host ? "已获取(长度:" . strlen($host) . ")" : "空",
+//             "user" => $user ? "已获取(长度:" . strlen($user) . ")" : "空",
+//             "db"   => $db ? "已获取(长度:" . strlen($db) . ")" : "空",
+//             "port" => $port
+//         ],
+//         "hint" => "请检查 Railway Variables 面板中的变量名是否完全一致（注意大小写）"
+//     ]);
+//     exit;
+// }
 
 // 构建 DSN
 $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
