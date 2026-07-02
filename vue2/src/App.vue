@@ -34,7 +34,7 @@
 import { ref, onMounted } from 'vue';
 
 // ========== API 自动切换配置 ==========
-const REMOTE_API = 'https://vueai-production.up.railway.app/api.php';  // Railway 远程
+const REMOTE_API = 'https://vue-api-277353-9-1449749052.sh.run.tcloudbaseapp.com/api.php';  // CloudBase 远程
 const LOCAL_API = 'http://localhost:8080/api.php';                      // 本地备用
 
 // 当前使用的 API 地址
