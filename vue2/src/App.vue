@@ -45,9 +45,9 @@ const loading = ref(false);
 
 // ========== 智能请求函数：优先远程，失败自动切换本地 ==========
 async function smartFetch(url, options = {}) {
-  // 设置5秒超时
+  // 设置10秒超时（给 Railway 更多响应时间）
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
     // 优先尝试当前配置的地址
