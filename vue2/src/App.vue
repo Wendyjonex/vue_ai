@@ -33,19 +33,66 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
-// API 地址 (对应你的 php 文件路径)
-// 注意：一定要加上 https://，并且后面跟上 /api.php
-const API_URL = 'https://vueai-production.up.railway.app/api.php';
+// ========== API 自动切换配置 ==========
+const REMOTE_API = 'https://vueai-production.up.railway.app/api.php';  // Railway 远程
+const LOCAL_API = 'http://localhost:8080/api.php';                      // 本地备用
 
+// 当前使用的 API 地址
+const currentApi = ref(REMOTE_API);
 const tasks = ref([]);
 const newTaskTitle = ref('');
 const loading = ref(false);
+
+// ========== 智能请求函数：优先远程，失败自动切换本地 ==========
+async function smartFetch(url, options = {}) {
+  // 设置5秒超时
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    // 优先尝试当前配置的地址
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    return res;
+  } catch (error) {
+    clearTimeout(timeout);
+
+    // 如果当前用的是远程，失败了就切换到本地
+    if (currentApi.value === REMOTE_API) {
+      console.log('Railway 连接失败，切换到本地...');
+      currentApi.value = LOCAL_API;
+      const localUrl = url.replace(REMOTE_API, LOCAL_API);
+      return smartFetch(localUrl, options); // 递归重试本地
+    }
+
+    // 本地也失败了，直接抛出错误
+    throw error;
+  }
+}
+
+// 统一 API 调用（自动切换）
+async function apiCall(action, method = 'GET', body = null) {
+  const url = `${currentApi.value}?action=${action}`;
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+  return smartFetch(url, options);
+}
+
+// ========== 业务逻辑 ==========
 
 // 1. 获取列表
 const fetchTasks = async () => {
   loading.value = true;
   try {
-    const res = await fetch(`${API_URL}?action=list`);
+    const res = await apiCall('list');
     const data = await res.json();
     tasks.value = data;
   } catch (e) {
@@ -60,47 +107,33 @@ const addTask = async () => {
   if (!newTaskTitle.value.trim()) return;
 
   try {
-    await fetch(`${API_URL}?action=add`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTaskTitle.value })
-    });
-    newTaskTitle.value = ''; // 清空输入框
-    fetchTasks(); // 重新刷新列表
+    await apiCall('add', 'POST', { title: newTaskTitle.value });
+    newTaskTitle.value = '';
+    fetchTasks();
   } catch (e) {
-    alert("添加出错");
+    console.error("添加失败", e);
+    alert("添加出错：请确保本地 PHP 后端已启动 (php -S localhost:8080)");
   }
 };
 
 // 3. 切换完成状态
 const toggleStatus = async (task) => {
   const newStatus = task.status === 1 ? 0 : 1;
-
-  // 乐观更新：先改变界面，再请求后台
   task.status = newStatus;
 
   try {
-    await fetch(`${API_URL}?action=update`, {
-      method: 'POST', // 有些服务器不支持 PUT，用 POST 兼容
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: task.id, status: newStatus })
-    });
+    await apiCall('update', 'POST', { id: task.id, status: newStatus });
   } catch (e) {
-    // 如果失败，可以回滚状态（这里简化处理）
     console.error("更新失败", e);
   }
 };
 
 // 4. 删除任务
 const deleteTask = async (id) => {
-  if(!confirm("确定删除吗？")) return;
+  if (!confirm("确定删除吗？")) return;
 
   try {
-    await fetch(`${API_URL}?action=delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
-    });
+    await apiCall('delete', 'POST', { id });
     fetchTasks();
   } catch (e) {
     console.error("删除失败", e);
