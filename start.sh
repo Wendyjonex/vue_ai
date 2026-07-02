@@ -17,9 +17,12 @@ done
 
 if [ $RETRY -lt $MAX_RETRIES ]; then
     echo "=== MySQL is up! ==="
-    if [ -f dump-test_db-202606301837.sql ]; then
+    if [ -f /app/schema.sql ]; then
+        echo "Importing schema (ignore errors if tables exist)..."
+        mysql -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" "$MYSQLDATABASE" < /app/schema.sql 2>/dev/null || echo "Schema import skipped or completed with warnings"
+    elif [ -f /app/dump-test_db-202606301837.sql ]; then
         echo "Importing database (ignore errors if tables exist)..."
-        mysql -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" "$MYSQLDATABASE" < dump-test_db-202606301837.sql 2>/dev/null || echo "Import skipped or completed with warnings"
+        mysql -h"$MYSQLHOST" -P"$MYSQLPORT" -u"$MYSQLUSER" -p"$MYSQLPASSWORD" "$MYSQLDATABASE" < /app/dump-test_db-202606301837.sql 2>/dev/null || echo "Import skipped or completed with warnings"
     fi
 fi
 
